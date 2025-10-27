@@ -47,11 +47,23 @@ const Settings = () => {
     if (savedBookmarks) setBookmarks(JSON.parse(savedBookmarks));
   }, []);
 
-  const [downloads] = useState<Download[]>([
+  const [downloads, setDownloads] = useState<Download[]>([
     { id: '1', name: 'document.pdf', size: '2.4 МБ', date: '27.10.2024', status: 'completed' },
     { id: '2', name: 'image.jpg', size: '1.8 МБ', date: '26.10.2024', status: 'completed' },
     { id: '3', name: 'archive.zip', size: '15.3 МБ', date: '25.10.2024', status: 'completed' },
   ]);
+
+  const handleViewDownload = (name: string) => {
+    alert(`Просмотр файла: ${name}`);
+  };
+
+  const handleDeleteDownload = (id: string) => {
+    setDownloads(downloads.filter(d => d.id !== id));
+  };
+
+  const handleOpenFolder = () => {
+    alert('Открытие папки скачиваний...');
+  };
 
   const handleClearHistory = () => {
     setHistory([]);
@@ -103,7 +115,7 @@ const Settings = () => {
               <Icon name="ArrowLeft" size={20} />
             </Button>
             <div>
-              <h1 className="text-2xl font-bold neon-glow text-primary">Настройки</h1>
+              <h1 className="text-2xl font-bold text-primary">Настройки</h1>
               <p className="text-sm text-muted-foreground">SKZ Browser</p>
             </div>
           </div>
@@ -261,10 +273,14 @@ const Settings = () => {
           </TabsContent>
 
           <TabsContent value="downloads" className="space-y-4 animate-fade-in">
-            <Card className="p-6 bg-card/50 backdrop-blur border-primary/20 neon-border">
+            <Card className="p-6 bg-card/50 backdrop-blur border-primary/20">
               <div className="flex items-center justify-between mb-4">
                 <h2 className="text-xl font-semibold text-primary">Скачанные файлы</h2>
-                <Button variant="outline" className="border-primary/50 hover:bg-primary/10">
+                <Button 
+                  variant="outline" 
+                  className="border-primary/50 hover:bg-primary/10"
+                  onClick={handleOpenFolder}
+                >
                   <Icon name="FolderOpen" size={16} className="mr-2" />
                   Открыть папку
                 </Button>
@@ -277,7 +293,7 @@ const Settings = () => {
                     className="flex items-center justify-between p-4 rounded-lg bg-muted/30 hover:bg-muted/50 transition-all group"
                   >
                     <div className="flex items-center gap-3 flex-1">
-                      <Icon name="FileText" size={18} className="text-primary group-hover:animate-pulse-neon" />
+                      <Icon name="FileText" size={18} className="text-primary" />
                       <div>
                         <div className="font-medium">{download.name}</div>
                         <div className="text-xs text-muted-foreground">
@@ -286,10 +302,20 @@ const Settings = () => {
                       </div>
                     </div>
                     <div className="flex items-center gap-2 opacity-0 group-hover:opacity-100 transition-opacity">
-                      <Button size="icon" variant="ghost">
+                      <Button 
+                        size="icon" 
+                        variant="ghost"
+                        onClick={() => handleViewDownload(download.name)}
+                        title="Просмотреть"
+                      >
                         <Icon name="Eye" size={16} />
                       </Button>
-                      <Button size="icon" variant="ghost">
+                      <Button 
+                        size="icon" 
+                        variant="ghost"
+                        onClick={() => handleDeleteDownload(download.id)}
+                        title="Удалить"
+                      >
                         <Icon name="Trash2" size={16} className="text-destructive" />
                       </Button>
                     </div>
@@ -314,11 +340,12 @@ const Settings = () => {
 
                 <div className="space-y-2">
                   <label className="text-sm font-medium">Поисковая система</label>
-                  <select className="w-full px-3 py-2 rounded-lg bg-input border border-border/50 focus:border-secondary/50 focus:outline-none">
-                    <option>Яндекс</option>
-                    <option>Google</option>
-                    <option>DuckDuckGo</option>
-                  </select>
+                  <Input
+                    value="Яндекс"
+                    disabled
+                    className="bg-muted border-border/50 cursor-not-allowed"
+                  />
+                  <p className="text-xs text-muted-foreground">Поисковая система не может быть изменена</p>
                 </div>
 
                 <div className="pt-4 border-t border-border">

@@ -76,19 +76,15 @@ const Index = () => {
   const handleNavigate = () => {
     if (!url) return;
     
-    let searchUrl = url;
-    if (!url.startsWith('http://') && !url.startsWith('https://')) {
-      searchUrl = `https://yandex.ru/search/?text=${encodeURIComponent(url)}`;
+    if (url.startsWith('http://') || url.startsWith('https://')) {
+      window.open(url, '_blank', 'noopener,noreferrer');
+    } else {
+      navigate(`/search?q=${encodeURIComponent(url)}`);
     }
-    
-    const updatedTabs = tabs.map(tab => 
-      tab.id === activeTabId ? { ...tab, url: searchUrl, title: url } : tab
-    );
-    setTabs(updatedTabs);
     
     const newHistory = [{
       id: Date.now().toString(),
-      url: searchUrl,
+      url: url,
       title: url,
       time: new Date().toLocaleTimeString('ru-RU', { hour: '2-digit', minute: '2-digit' })
     }, ...history].slice(0, 50);
@@ -149,7 +145,7 @@ const Index = () => {
             </button>
           </div>
 
-          <div className="px-4 py-3 flex items-center gap-3">
+          <div className="px-4 py-3 flex items-center gap-3 max-w-5xl mx-auto w-full">
             <div className="flex gap-2">
               <Button 
                 size="icon" 
@@ -222,38 +218,39 @@ const Index = () => {
         </div>
 
         <div className="flex-1 overflow-auto">
-          {tabs.find(t => t.id === activeTabId)?.url ? (
-            <div className="h-full flex flex-col bg-card p-4">
-              <div className="text-center py-8 text-muted-foreground">
-                <Icon name="Globe" size={48} className="mx-auto mb-4 text-primary" />
-                <p className="text-lg mb-2">SKZ Browser</p>
-                <p className="text-sm">Переход на: <span className="text-primary">{tabs.find(t => t.id === activeTabId)?.url}</span></p>
-                <a 
-                  href={tabs.find(t => t.id === activeTabId)?.url} 
-                  target="_blank" 
-                  rel="noopener noreferrer"
-                  className="inline-block mt-4 px-6 py-2 bg-primary text-white rounded-lg hover:bg-primary/90 neon-border"
-                >
-                  Открыть в новой вкладке
-                </a>
-              </div>
-            </div>
-          ) : (
           <div className="p-8">
             <div className="max-w-4xl mx-auto space-y-8 animate-fade-in">
               <div className="text-center space-y-4">
-                <h1 className="text-6xl font-bold neon-glow text-primary">SKZ</h1>
-                <p className="text-muted-foreground">Ваш браузер на базе Яндекс платформы</p>
+                <h1 className="text-6xl font-bold text-primary">skz.ru</h1>
+                <p className="text-muted-foreground">Поиск на базе Яндекс платформы</p>
               </div>
+
+              {bookmarks.length > 0 && (
+                <Card className="p-6 bg-card border-border/50">
+                  <h2 className="text-sm font-semibold mb-4 text-muted-foreground">Закладки</h2>
+                  <div className="grid grid-cols-4 gap-3">
+                    {bookmarks.slice(0, 8).map((bookmark) => (
+                      <button
+                        key={bookmark.id}
+                        onClick={() => window.open(bookmark.url, '_blank', 'noopener,noreferrer')}
+                        className="flex flex-col items-center gap-2 p-3 rounded-lg hover:bg-muted transition-all group"
+                      >
+                        <span className="text-3xl group-hover:scale-110 transition-transform">{bookmark.favicon}</span>
+                        <span className="text-xs truncate max-w-full">{bookmark.title}</span>
+                      </button>
+                    ))}
+                  </div>
+                </Card>
+              )}
 
               <div className="text-center">
                 <p className="text-sm text-muted-foreground">
-                  🚀 Работает без интернета • Версия 1.0 • skz.ru
+                  Версия 1.0 • skz.ru
                 </p>
               </div>
             </div>
           </div>
-          )}
+        }
         </div>
       </div>
     </div>
