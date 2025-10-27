@@ -27,34 +27,32 @@ const Index = () => {
     { id: '1', title: 'Новая вкладка', url: '' }
   ]);
   
-  const [bookmarks] = useState<Bookmark[]>([
-    { id: '1', title: 'Яндекс', url: 'https://yandex.ru', favicon: '🔍' },
-    { id: '2', title: 'YouTube', url: 'https://youtube.com', favicon: '📺' },
-    { id: '3', title: 'GitHub', url: 'https://github.com', favicon: '💻' },
-    { id: '4', title: 'ВКонтакте', url: 'https://vk.com', favicon: '💙' },
-  ]);
+  const [bookmarks, setBookmarks] = useState<Bookmark[]>(() => {
+    const saved = localStorage.getItem('skz-bookmarks');
+    return saved ? JSON.parse(saved) : [
+      { id: '1', title: 'Яндекс', url: 'https://yandex.ru', favicon: '🔍' },
+      { id: '2', title: 'YouTube', url: 'https://youtube.com', favicon: '📺' },
+      { id: '3', title: 'GitHub', url: 'https://github.com', favicon: '💻' },
+      { id: '4', title: 'ВКонтакте', url: 'https://vk.com', favicon: '💙' },
+    ];
+  });
 
-  const quickAccess = [
-    { icon: 'Mail', label: 'Почта', color: 'text-[#8B5CF6]', url: 'https://mail.yandex.ru' },
-    { icon: 'Video', label: 'Видео', color: 'text-[#0EA5E9]', url: 'https://yandex.ru/video' },
-    { icon: 'Music', label: 'Музыка', color: 'text-[#8B5CF6]', url: 'https://music.yandex.ru' },
-    { icon: 'ShoppingCart', label: 'Маркет', color: 'text-[#0EA5E9]', url: 'https://market.yandex.ru' },
-  ];
-
-  const handleQuickAccess = (accessUrl: string) => {
-    setUrl(accessUrl);
-    const updatedTabs = tabs.map(tab => 
-      tab.id === activeTabId ? { ...tab, url: accessUrl, title: accessUrl } : tab
-    );
-    setTabs(updatedTabs);
+  const addBookmark = (title: string, url: string) => {
+    const newBookmark: Bookmark = {
+      id: Date.now().toString(),
+      title,
+      url,
+      favicon: '⭐'
+    };
+    const updated = [...bookmarks, newBookmark];
+    setBookmarks(updated);
+    localStorage.setItem('skz-bookmarks', JSON.stringify(updated));
   };
 
-  const handleBookmarkClick = (bookmarkUrl: string, title: string) => {
-    setUrl(bookmarkUrl);
-    const updatedTabs = tabs.map(tab => 
-      tab.id === activeTabId ? { ...tab, url: bookmarkUrl, title } : tab
-    );
-    setTabs(updatedTabs);
+  const removeBookmark = (id: string) => {
+    const updated = bookmarks.filter(b => b.id !== id);
+    setBookmarks(updated);
+    localStorage.setItem('skz-bookmarks', JSON.stringify(updated));
   };
 
   const handleHome = () => {
@@ -65,7 +63,15 @@ const Index = () => {
     setUrl('');
   };
 
-  const [history, setHistory] = useState<{id: string, url: string, title: string, time: string}[]>([]);
+  const [history, setHistory] = useState<{id: string, url: string, title: string, time: string}[]>(() => {
+    const saved = localStorage.getItem('skz-history');
+    return saved ? JSON.parse(saved) : [];
+  });
+
+  const clearHistory = () => {
+    setHistory([]);
+    localStorage.removeItem('skz-history');
+  };
 
   const handleNavigate = () => {
     if (!url) return;
@@ -80,12 +86,14 @@ const Index = () => {
     );
     setTabs(updatedTabs);
     
-    setHistory(prev => [{
+    const newHistory = [{
       id: Date.now().toString(),
       url: searchUrl,
       title: url,
       time: new Date().toLocaleTimeString('ru-RU', { hour: '2-digit', minute: '2-digit' })
-    }, ...prev].slice(0, 50));
+    }, ...history].slice(0, 50);
+    setHistory(newHistory);
+    localStorage.setItem('skz-history', JSON.stringify(newHistory));
   };
 
   const addNewTab = () => {
@@ -213,64 +221,36 @@ const Index = () => {
           </div>
         </div>
 
-        <div className="flex-1 overflow-auto p-8">
+        <div className="flex-1 overflow-auto">
           {tabs.find(t => t.id === activeTabId)?.url ? (
-            <div className="h-full">
-              <iframe
-                src={tabs.find(t => t.id === activeTabId)?.url}
-                className="w-full h-full border-0"
-                title="SKZ Browser"
-                sandbox="allow-same-origin allow-scripts allow-popups allow-forms"
-              />
+            <div className="h-full flex flex-col bg-card p-4">
+              <div className="text-center py-8 text-muted-foreground">
+                <Icon name="Globe" size={48} className="mx-auto mb-4 text-primary" />
+                <p className="text-lg mb-2">SKZ Browser</p>
+                <p className="text-sm">Переход на: <span className="text-primary">{tabs.find(t => t.id === activeTabId)?.url}</span></p>
+                <a 
+                  href={tabs.find(t => t.id === activeTabId)?.url} 
+                  target="_blank" 
+                  rel="noopener noreferrer"
+                  className="inline-block mt-4 px-6 py-2 bg-primary text-white rounded-lg hover:bg-primary/90 neon-border"
+                >
+                  Открыть в новой вкладке
+                </a>
+              </div>
             </div>
           ) : (
-          <div className="max-w-4xl mx-auto space-y-8 animate-fade-in">
-            <div className="text-center space-y-4">
-              <h1 className="text-6xl font-bold neon-glow text-primary">SKZ</h1>
-              <p className="text-muted-foreground">Ваш браузер на базе Яндекс платформы</p>
-            </div>
-
-            <Card className="p-6 bg-card/50 backdrop-blur border-primary/20 neon-border">
-              <h2 className="text-lg font-semibold mb-4 text-primary">Быстрый доступ</h2>
-              <div className="grid grid-cols-4 gap-4">
-                {quickAccess.map((item, idx) => (
-                  <button
-                    key={idx}
-                    onClick={() => handleQuickAccess(item.url)}
-                    className="flex flex-col items-center gap-2 p-4 rounded-lg hover:bg-muted/50 transition-all group"
-                  >
-                    <div className={`${item.color} group-hover:animate-pulse-neon`}>
-                      <Icon name={item.icon as any} size={32} />
-                    </div>
-                    <span className="text-sm">{item.label}</span>
-                  </button>
-                ))}
+          <div className="p-8">
+            <div className="max-w-4xl mx-auto space-y-8 animate-fade-in">
+              <div className="text-center space-y-4">
+                <h1 className="text-6xl font-bold neon-glow text-primary">SKZ</h1>
+                <p className="text-muted-foreground">Ваш браузер на базе Яндекс платформы</p>
               </div>
-            </Card>
 
-            <Card className="p-6 bg-card/50 backdrop-blur border-secondary/20 neon-border-cyan">
-              <h2 className="text-lg font-semibold mb-4 text-secondary">Закладки</h2>
-              <div className="grid grid-cols-2 gap-3">
-                {bookmarks.map((bookmark) => (
-                  <button
-                    key={bookmark.id}
-                    onClick={() => handleBookmarkClick(bookmark.url, bookmark.title)}
-                    className="flex items-center gap-3 p-3 rounded-lg hover:bg-muted/50 transition-all text-left group"
-                  >
-                    <span className="text-2xl group-hover:scale-110 transition-transform">{bookmark.favicon}</span>
-                    <div className="flex-1">
-                      <div className="font-medium">{bookmark.title}</div>
-                      <div className="text-xs text-muted-foreground truncate">{bookmark.url}</div>
-                    </div>
-                  </button>
-                ))}
+              <div className="text-center">
+                <p className="text-sm text-muted-foreground">
+                  🚀 Работает без интернета • Версия 1.0 • skz.ru
+                </p>
               </div>
-            </Card>
-
-            <div className="text-center">
-              <p className="text-sm text-muted-foreground">
-                🚀 Работает без интернета • Версия 1.0 • skz.ru
-              </p>
             </div>
           </div>
           )}

@@ -1,8 +1,10 @@
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { Button } from '@/components/ui/button';
 import { Card } from '@/components/ui/card';
 import { Input } from '@/components/ui/input';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
+import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from '@/components/ui/dialog';
+import { Label } from '@/components/ui/label';
 import Icon from '@/components/ui/icon';
 import { useNavigate } from 'react-router-dom';
 
@@ -25,17 +27,25 @@ interface Bookmark {
   id: string;
   title: string;
   url: string;
-  folder: string;
+  favicon?: string;
 }
 
 const Settings = () => {
   const navigate = useNavigate();
   
-  const [history] = useState<HistoryItem[]>([
-    { id: '1', title: 'Яндекс', url: 'https://yandex.ru', time: '15:30' },
-    { id: '2', title: 'YouTube', url: 'https://youtube.com', time: '14:15' },
-    { id: '3', title: 'GitHub', url: 'https://github.com', time: '13:00' },
-  ]);
+  const [history, setHistory] = useState<HistoryItem[]>([]);
+  const [bookmarks, setBookmarks] = useState<Bookmark[]>([]);
+  const [newBookmarkTitle, setNewBookmarkTitle] = useState('');
+  const [newBookmarkUrl, setNewBookmarkUrl] = useState('');
+  const [isAddDialogOpen, setIsAddDialogOpen] = useState(false);
+
+  useEffect(() => {
+    const savedHistory = localStorage.getItem('skz-history');
+    const savedBookmarks = localStorage.getItem('skz-bookmarks');
+    
+    if (savedHistory) setHistory(JSON.parse(savedHistory));
+    if (savedBookmarks) setBookmarks(JSON.parse(savedBookmarks));
+  }, []);
 
   const [downloads] = useState<Download[]>([
     { id: '1', name: 'document.pdf', size: '2.4 МБ', date: '27.10.2024', status: 'completed' },
@@ -43,12 +53,41 @@ const Settings = () => {
     { id: '3', name: 'archive.zip', size: '15.3 МБ', date: '25.10.2024', status: 'completed' },
   ]);
 
-  const [bookmarks] = useState<Bookmark[]>([
-    { id: '1', title: 'Яндекс', url: 'https://yandex.ru', folder: 'Избранное' },
-    { id: '2', title: 'YouTube', url: 'https://youtube.com', folder: 'Видео' },
-    { id: '3', title: 'GitHub', url: 'https://github.com', folder: 'Разработка' },
-    { id: '4', title: 'ВКонтакте', url: 'https://vk.com', folder: 'Социальные сети' },
-  ]);
+  const handleClearHistory = () => {
+    setHistory([]);
+    localStorage.removeItem('skz-history');
+  };
+
+  const handleRemoveHistoryItem = (id: string) => {
+    const updated = history.filter(item => item.id !== id);
+    setHistory(updated);
+    localStorage.setItem('skz-history', JSON.stringify(updated));
+  };
+
+  const handleAddBookmark = () => {
+    if (!newBookmarkTitle || !newBookmarkUrl) return;
+    
+    const newBookmark: Bookmark = {
+      id: Date.now().toString(),
+      title: newBookmarkTitle,
+      url: newBookmarkUrl,
+      favicon: '⭐'
+    };
+    
+    const updated = [...bookmarks, newBookmark];
+    setBookmarks(updated);
+    localStorage.setItem('skz-bookmarks', JSON.stringify(updated));
+    
+    setNewBookmarkTitle('');
+    setNewBookmarkUrl('');
+    setIsAddDialogOpen(false);
+  };
+
+  const handleRemoveBookmark = (id: string) => {
+    const updated = bookmarks.filter(b => b.id !== id);
+    setBookmarks(updated);
+    localStorage.setItem('skz-bookmarks', JSON.stringify(updated));
+  };
 
   return (
     <div className="min-h-screen bg-background">
@@ -96,43 +135,75 @@ const Settings = () => {
           <TabsContent value="bookmarks" className="space-y-4 animate-fade-in">
             <Card className="p-6 bg-card/50 backdrop-blur border-primary/20 neon-border">
               <div className="flex items-center justify-between mb-4">
-                <h2 className="text-xl font-semibold text-primary">Закладки</h2>
-                <Button className="bg-primary hover:bg-primary/90 neon-border">
-                  <Icon name="Plus" size={16} className="mr-2" />
-                  Добавить
-                </Button>
-              </div>
-              
-              <div className="mb-4">
-                <Input
-                  placeholder="Поиск в закладках..."
-                  className="bg-input border-border/50 focus:border-primary/50"
-                />
+                <h2 className="text-xl font-semibold text-primary">Закладки ({bookmarks.length})</h2>
+                <Dialog open={isAddDialogOpen} onOpenChange={setIsAddDialogOpen}>
+                  <DialogTrigger asChild>
+                    <Button className="bg-primary hover:bg-primary/90 neon-border">
+                      <Icon name="Plus" size={16} className="mr-2" />
+                      Добавить
+                    </Button>
+                  </DialogTrigger>
+                  <DialogContent className="bg-card border-primary/20">
+                    <DialogHeader>
+                      <DialogTitle className="text-primary">Добавить закладку</DialogTitle>
+                    </DialogHeader>
+                    <div className="space-y-4 pt-4">
+                      <div className="space-y-2">
+                        <Label>Название</Label>
+                        <Input
+                          value={newBookmarkTitle}
+                          onChange={(e) => setNewBookmarkTitle(e.target.value)}
+                          placeholder="Название сайта"
+                          className="bg-input border-border/50"
+                        />
+                      </div>
+                      <div className="space-y-2">
+                        <Label>URL</Label>
+                        <Input
+                          value={newBookmarkUrl}
+                          onChange={(e) => setNewBookmarkUrl(e.target.value)}
+                          placeholder="https://example.com"
+                          className="bg-input border-border/50"
+                        />
+                      </div>
+                      <Button onClick={handleAddBookmark} className="w-full bg-primary hover:bg-primary/90">
+                        Сохранить
+                      </Button>
+                    </div>
+                  </DialogContent>
+                </Dialog>
               </div>
 
               <div className="space-y-2">
-                {bookmarks.map((bookmark) => (
-                  <div
-                    key={bookmark.id}
-                    className="flex items-center justify-between p-4 rounded-lg bg-muted/30 hover:bg-muted/50 transition-all group"
-                  >
-                    <div className="flex items-center gap-3 flex-1">
-                      <Icon name="Bookmark" size={18} className="text-primary group-hover:animate-pulse-neon" />
-                      <div>
-                        <div className="font-medium">{bookmark.title}</div>
-                        <div className="text-xs text-muted-foreground">{bookmark.url}</div>
+                {bookmarks.length === 0 ? (
+                  <div className="text-center py-8 text-muted-foreground">
+                    <Icon name="Bookmark" size={48} className="mx-auto mb-2 opacity-50" />
+                    <p>Нет сохранённых закладок</p>
+                  </div>
+                ) : (
+                  bookmarks.map((bookmark) => (
+                    <div
+                      key={bookmark.id}
+                      className="flex items-center justify-between p-4 rounded-lg bg-muted/30 hover:bg-muted/50 transition-all group"
+                    >
+                      <div className="flex items-center gap-3 flex-1">
+                        <span className="text-xl">{bookmark.favicon}</span>
+                        <div>
+                          <div className="font-medium">{bookmark.title}</div>
+                          <div className="text-xs text-muted-foreground">{bookmark.url}</div>
+                        </div>
                       </div>
-                    </div>
-                    <div className="flex items-center gap-2">
-                      <span className="text-xs px-2 py-1 rounded-full bg-primary/20 text-primary">
-                        {bookmark.folder}
-                      </span>
-                      <Button size="icon" variant="ghost" className="opacity-0 group-hover:opacity-100">
+                      <Button 
+                        size="icon" 
+                        variant="ghost" 
+                        className="opacity-0 group-hover:opacity-100"
+                        onClick={() => handleRemoveBookmark(bookmark.id)}
+                      >
                         <Icon name="Trash2" size={16} className="text-destructive" />
                       </Button>
                     </div>
-                  </div>
-                ))}
+                  ))
+                )}
               </div>
             </Card>
           </TabsContent>
@@ -140,41 +211,51 @@ const Settings = () => {
           <TabsContent value="history" className="space-y-4 animate-fade-in">
             <Card className="p-6 bg-card/50 backdrop-blur border-secondary/20 neon-border-cyan">
               <div className="flex items-center justify-between mb-4">
-                <h2 className="text-xl font-semibold text-secondary">История посещений</h2>
-                <Button variant="outline" className="border-destructive/50 text-destructive hover:bg-destructive/10">
+                <h2 className="text-xl font-semibold text-secondary">История посещений ({history.length})</h2>
+                <Button 
+                  variant="outline" 
+                  className="border-destructive/50 text-destructive hover:bg-destructive/10"
+                  onClick={handleClearHistory}
+                  disabled={history.length === 0}
+                >
                   <Icon name="Trash2" size={16} className="mr-2" />
-                  Очистить
+                  Очистить всё
                 </Button>
               </div>
 
-              <div className="mb-4">
-                <Input
-                  placeholder="Поиск в истории..."
-                  className="bg-input border-border/50 focus:border-secondary/50"
-                />
-              </div>
-
               <div className="space-y-2">
-                {history.map((item) => (
-                  <div
-                    key={item.id}
-                    className="flex items-center justify-between p-4 rounded-lg bg-muted/30 hover:bg-muted/50 transition-all group"
-                  >
-                    <div className="flex items-center gap-3 flex-1">
-                      <Icon name="Globe" size={18} className="text-secondary group-hover:animate-pulse-neon" />
-                      <div>
-                        <div className="font-medium">{item.title}</div>
-                        <div className="text-xs text-muted-foreground">{item.url}</div>
+                {history.length === 0 ? (
+                  <div className="text-center py-8 text-muted-foreground">
+                    <Icon name="Clock" size={48} className="mx-auto mb-2 opacity-50" />
+                    <p>История пуста</p>
+                  </div>
+                ) : (
+                  history.map((item) => (
+                    <div
+                      key={item.id}
+                      className="flex items-center justify-between p-4 rounded-lg bg-muted/30 hover:bg-muted/50 transition-all group"
+                    >
+                      <div className="flex items-center gap-3 flex-1">
+                        <Icon name="Globe" size={18} className="text-secondary group-hover:animate-pulse-neon" />
+                        <div>
+                          <div className="font-medium">{item.title}</div>
+                          <div className="text-xs text-muted-foreground">{item.url}</div>
+                        </div>
+                      </div>
+                      <div className="flex items-center gap-2">
+                        <span className="text-xs text-muted-foreground">{item.time}</span>
+                        <Button 
+                          size="icon" 
+                          variant="ghost" 
+                          className="opacity-0 group-hover:opacity-100"
+                          onClick={() => handleRemoveHistoryItem(item.id)}
+                        >
+                          <Icon name="X" size={16} />
+                        </Button>
                       </div>
                     </div>
-                    <div className="flex items-center gap-2">
-                      <span className="text-xs text-muted-foreground">{item.time}</span>
-                      <Button size="icon" variant="ghost" className="opacity-0 group-hover:opacity-100">
-                        <Icon name="X" size={16} />
-                      </Button>
-                    </div>
-                  </div>
-                ))}
+                  ))
+                )}
               </div>
             </Card>
           </TabsContent>
