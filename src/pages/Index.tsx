@@ -35,19 +35,57 @@ const Index = () => {
   ]);
 
   const quickAccess = [
-    { icon: 'Mail', label: 'Почта', color: 'text-[#8B5CF6]' },
-    { icon: 'Video', label: 'Видео', color: 'text-[#0EA5E9]' },
-    { icon: 'Music', label: 'Музыка', color: 'text-[#8B5CF6]' },
-    { icon: 'ShoppingCart', label: 'Маркет', color: 'text-[#0EA5E9]' },
+    { icon: 'Mail', label: 'Почта', color: 'text-[#8B5CF6]', url: 'https://mail.yandex.ru' },
+    { icon: 'Video', label: 'Видео', color: 'text-[#0EA5E9]', url: 'https://yandex.ru/video' },
+    { icon: 'Music', label: 'Музыка', color: 'text-[#8B5CF6]', url: 'https://music.yandex.ru' },
+    { icon: 'ShoppingCart', label: 'Маркет', color: 'text-[#0EA5E9]', url: 'https://market.yandex.ru' },
   ];
 
+  const handleQuickAccess = (accessUrl: string) => {
+    setUrl(accessUrl);
+    const updatedTabs = tabs.map(tab => 
+      tab.id === activeTabId ? { ...tab, url: accessUrl, title: accessUrl } : tab
+    );
+    setTabs(updatedTabs);
+  };
+
+  const handleBookmarkClick = (bookmarkUrl: string, title: string) => {
+    setUrl(bookmarkUrl);
+    const updatedTabs = tabs.map(tab => 
+      tab.id === activeTabId ? { ...tab, url: bookmarkUrl, title } : tab
+    );
+    setTabs(updatedTabs);
+  };
+
+  const handleHome = () => {
+    const updatedTabs = tabs.map(tab => 
+      tab.id === activeTabId ? { ...tab, url: '', title: 'Новая вкладка' } : tab
+    );
+    setTabs(updatedTabs);
+    setUrl('');
+  };
+
+  const [history, setHistory] = useState<{id: string, url: string, title: string, time: string}[]>([]);
+
   const handleNavigate = () => {
-    if (url) {
-      const updatedTabs = tabs.map(tab => 
-        tab.id === activeTabId ? { ...tab, url, title: url } : tab
-      );
-      setTabs(updatedTabs);
+    if (!url) return;
+    
+    let searchUrl = url;
+    if (!url.startsWith('http://') && !url.startsWith('https://')) {
+      searchUrl = `https://yandex.ru/search/?text=${encodeURIComponent(url)}`;
     }
+    
+    const updatedTabs = tabs.map(tab => 
+      tab.id === activeTabId ? { ...tab, url: searchUrl, title: url } : tab
+    );
+    setTabs(updatedTabs);
+    
+    setHistory(prev => [{
+      id: Date.now().toString(),
+      url: searchUrl,
+      title: url,
+      time: new Date().toLocaleTimeString('ru-RU', { hour: '2-digit', minute: '2-digit' })
+    }, ...prev].slice(0, 50));
   };
 
   const addNewTab = () => {
@@ -105,16 +143,40 @@ const Index = () => {
 
           <div className="px-4 py-3 flex items-center gap-3">
             <div className="flex gap-2">
-              <Button size="icon" variant="ghost" className="hover:text-primary">
+              <Button 
+                size="icon" 
+                variant="ghost" 
+                className="hover:text-primary"
+                onClick={() => window.history.back()}
+                title="Назад"
+              >
                 <Icon name="ArrowLeft" size={20} />
               </Button>
-              <Button size="icon" variant="ghost" className="hover:text-primary">
+              <Button 
+                size="icon" 
+                variant="ghost" 
+                className="hover:text-primary"
+                onClick={() => window.history.forward()}
+                title="Вперёд"
+              >
                 <Icon name="ArrowRight" size={20} />
               </Button>
-              <Button size="icon" variant="ghost" className="hover:text-primary">
+              <Button 
+                size="icon" 
+                variant="ghost" 
+                className="hover:text-primary"
+                onClick={() => window.location.reload()}
+                title="Обновить"
+              >
                 <Icon name="RotateCw" size={20} />
               </Button>
-              <Button size="icon" variant="ghost" className="hover:text-primary">
+              <Button 
+                size="icon" 
+                variant="ghost" 
+                className="hover:text-primary"
+                onClick={handleHome}
+                title="Домой"
+              >
                 <Icon name="Home" size={20} />
               </Button>
             </div>
@@ -152,6 +214,16 @@ const Index = () => {
         </div>
 
         <div className="flex-1 overflow-auto p-8">
+          {tabs.find(t => t.id === activeTabId)?.url ? (
+            <div className="h-full">
+              <iframe
+                src={tabs.find(t => t.id === activeTabId)?.url}
+                className="w-full h-full border-0"
+                title="SKZ Browser"
+                sandbox="allow-same-origin allow-scripts allow-popups allow-forms"
+              />
+            </div>
+          ) : (
           <div className="max-w-4xl mx-auto space-y-8 animate-fade-in">
             <div className="text-center space-y-4">
               <h1 className="text-6xl font-bold neon-glow text-primary">SKZ</h1>
@@ -164,6 +236,7 @@ const Index = () => {
                 {quickAccess.map((item, idx) => (
                   <button
                     key={idx}
+                    onClick={() => handleQuickAccess(item.url)}
                     className="flex flex-col items-center gap-2 p-4 rounded-lg hover:bg-muted/50 transition-all group"
                   >
                     <div className={`${item.color} group-hover:animate-pulse-neon`}>
@@ -181,6 +254,7 @@ const Index = () => {
                 {bookmarks.map((bookmark) => (
                   <button
                     key={bookmark.id}
+                    onClick={() => handleBookmarkClick(bookmark.url, bookmark.title)}
                     className="flex items-center gap-3 p-3 rounded-lg hover:bg-muted/50 transition-all text-left group"
                   >
                     <span className="text-2xl group-hover:scale-110 transition-transform">{bookmark.favicon}</span>
@@ -199,6 +273,7 @@ const Index = () => {
               </p>
             </div>
           </div>
+          )}
         </div>
       </div>
     </div>
